@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
@@ -104,7 +103,11 @@ fun ResultScreen(navController: NavController, bmi: Double) {
   Scaffold(topBar = {
     TopAppBar(
       title = { Text("비만도 계산기") },
-      navigationIcon = { Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "", modifier = Modifier.clickable { navController.popBackStack() }) })
+      navigationIcon = {
+        IconButton(onClick = { navController.popBackStack() }) {
+          Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "")
+        }
+      })
   }) {
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
       Text(text, fontSize = 30.sp)
