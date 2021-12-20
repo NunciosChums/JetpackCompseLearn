@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -40,21 +41,23 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun HomeScreen(vm: MainViewModel) {
   val (url, setUrl) = rememberSaveable {
-    mutableStateOf("https://google.com")
+    mutableStateOf("https://www.google.com")
   }
   val focusManager = LocalFocusManager.current
-  val scaffoldState = rememberScaffoldState()
+
+  val canGoBack = vm.canGoBack.observeAsState(initial = false)
+  val canGoForward = vm.canGoForward.observeAsState(initial = false)
 
   Scaffold(topBar = {
     TopAppBar(title = { Text("나만의 웹 브라우저") }, actions = {
-      IconButton(onClick = { vm.undo() }) {
-        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "이전 페이지", tint = Color.White)
+      IconButton(onClick = { vm.undo() }, enabled = canGoBack.value) {
+        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "이전 페이지", tint = if (canGoBack.value) Color.White else Color.Gray)
       }
-      IconButton(onClick = { vm.redo() }) {
-        Icon(imageVector = Icons.Default.ArrowForward, contentDescription = "다음 페이지", tint = Color.White)
+      IconButton(onClick = { vm.redo() }, enabled = canGoForward.value) {
+        Icon(imageVector = Icons.Default.ArrowForward, contentDescription = "다음 페이지", tint = if (canGoForward.value) Color.White else Color.Gray)
       }
     })
-  }, scaffoldState = scaffoldState) {
+  }) {
     Column(Modifier.fillMaxWidth()) {
       OutlinedTextField(
         value = url,
@@ -67,49 +70,49 @@ fun HomeScreen(vm: MainViewModel) {
         keyboardActions = KeyboardActions(onSearch = {
           vm.url.value = url
           focusManager.clearFocus()
-        }),
+        })
       )
       Spacer(modifier = Modifier.height(8.dp))
-      MyWebView(vm, scaffoldState)
+      MyWebView(vm)
     }
   }
 }
 
 @Composable
-fun MyWebView(vm: MainViewModel, scaffoldState: ScaffoldState) {
-  val webView = rememberWebView()
+fun MyWebView(vm: MainViewModel) {
+  val webView = rememberWebView(vm)
 
   LaunchedEffect(Unit) {
-    vm.undoSharedFlow.collectLatest {
-      if (webView.canGoBack())
-        webView.goBack()
-      else
-        scaffoldState.snackbarHostState.showSnackbar("뒤로 갈 수 없습니다.")
-    }
+    vm.undoSharedFlow.collectLatest { webView.goBack() }
   }
 
   LaunchedEffect(Unit) {
-    vm.redoSharedFlow.collectLatest {
-      if (webView.canGoForward())
-        webView.goForward()
-      else
-        scaffoldState.snackbarHostState.showSnackbar("앞으로 갈 수 없습니다.")
-    }
+    vm.redoSharedFlow.collectLatest { webView.goForward() }
   }
 
   AndroidView(modifier = Modifier.fillMaxSize(),
     factory = { webView },
-    update = { it.loadUrl(vm.url.value) })
+    update = {
+      it.loadUrl(vm.url.value)
+    })
 }
 
 @Composable
-fun rememberWebView(): WebView {
+fun rememberWebView(vm: MainViewModel): WebView {
   val context = LocalContext.current
+
   return remember {
     WebView(context).apply {
       settings.javaScriptEnabled = true
-      webViewClient = WebViewClient()
-      loadUrl("https://google.com")
+      webViewClient = CustomWebViewClient(vm)
     }
   }
 }
+
+class CustomWebViewClient(private val vm: MainViewModel) : WebViewClient() {
+  override fun onPageFinished(view: WebView?, url: String?) {
+    super.onPageFinished(view, url)
+    vm.updateCanGo(view?.canGoBack(), view?.canGoForward())
+  }
+}
+
