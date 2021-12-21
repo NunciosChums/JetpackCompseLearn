@@ -1,5 +1,6 @@
 package kr.susemi99.xylophone
 
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -12,27 +13,10 @@ import kr.susemi99.xylophone.ui.theme.XylophoneTheme
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
+    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE // 화면 가로 고정
+
     super.onCreate(savedInstanceState)
     setContent {
-      XylophoneTheme {
-        // A surface container using the 'background' color from the theme
-        Surface(color = MaterialTheme.colors.background) {
-          Greeting("Android")
-        }
-      }
     }
-  }
-}
-
-@Composable
-fun Greeting(name: String) {
-  Text(text = "Hello $name!")
-}
-
-@Preview(showBackground = true)
-@Composable
-fun DefaultPreview() {
-  XylophoneTheme {
-    Greeting("Android")
   }
 }
